@@ -32,29 +32,29 @@ import XMLHttpRequest from 'wxpp-XMLHttpRequest';
 // commonJS
 const XMLHttpRequest = require('wxpp-XMLHttpRequest').default;
 
-    const request = new XMLHttpRequest();
+const request = new XMLHttpRequest();
 
-    request.timeout = 100;
+request.timeout = 100;
 
-    request.ontimeout = function() {
-      console.error(`timeout...`);
-    };
+request.ontimeout = function() {
+  console.error(`timeout...`);
+};
 
-    request.setRequestHeader('hello', 'world 123');
+request.setRequestHeader('hello', 'world 123');
 
-    request.open('GET', 'https://www.baidu.com');
+request.open('GET', 'https://www.baidu.com');
 
-    request.onreadystatechange = function() {
-      if (request.readyState === 4) {
-        console.log(request.response);
-      }
-    };
+request.onreadystatechange = function() {
+  if (request.readyState === 4) {
+    console.log(request.response);
+  }
+};
 
-    request.onerror = function(err) {
-      console.error(err);
-    };
+request.onerror = function(err) {
+  console.error(err);
+};
 
-    request.send('hello world');
+request.send('hello world');
 ```
 
 ## Related
