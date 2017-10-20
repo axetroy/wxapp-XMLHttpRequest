@@ -1,0 +1,39 @@
+{
+  "name": "wxpp-XMLHttpRequest",
+  "version": "0.0.1",
+  "description": "Web XMLHttpRequest implement for WeChat APP",
+  "main": "./dist/wxpp-XMLHttpRequest.js",
+  "typings": "index.d.ts",
+  "scripts": {
+    "test": "ava",
+    "build": "webpack --display-error-details --progress --colors",
+    "start": "webpack --display-error-details --progress --colors --watch",
+    "generate": "all-contributors generate",
+    "deploy": "gh-pages -d ./dist"
+  },
+  "keywords": [
+    "wxapp",
+    "http",
+    "wx",
+    "request"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/axetroy/wxpp-XMLHttpRequest.git"
+  },
+  "author": "Axetroy",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/axetroy/wxpp-XMLHttpRequest/issues"
+  },
+  "homepage": "https://github.com/axetroy/wxpp-XMLHttpRequest#readme",
+  "devDependencies": {
+    "all-contributors-cli": "^4.5.0",
+    "ava": "^0.22.0",
+    "gh-pages": "^1.0.0",
+    "ts-loader": "^3.0.0",
+    "typescript": "^2.5.3",
+    "webpack": "^3.8.1"
+  },
+  "dependencies": {}
+}
