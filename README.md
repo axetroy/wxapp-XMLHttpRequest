@@ -10,8 +10,6 @@
 
 微信小程序的XMLHttpRequest实现
 
-![sceenshot](https://github.com/axetroy/wxpp-XMLHttpRequest/raw/master/screenshot.gif)
-
 ## Installation
 ```bash
 npm install wxpp-XMLHttpRequest --save
