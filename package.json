@@ -1,8 +1,8 @@
 {
-  "name": "wxpp-XMLHttpRequest",
+  "name": "wxapp-XMLHttpRequest",
   "version": "0.0.1",
   "description": "Web XMLHttpRequest implement for WeChat APP",
-  "main": "./dist/wxpp-XMLHttpRequest.js",
+  "main": "./dist/wxapp-XMLHttpRequest.js",
   "typings": "index.d.ts",
   "scripts": {
     "test": "ava",
@@ -19,14 +19,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/axetroy/wxpp-XMLHttpRequest.git"
+    "url": "git+https://github.com/axetroy/wxapp-XMLHttpRequest.git"
   },
   "author": "Axetroy",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/axetroy/wxpp-XMLHttpRequest/issues"
+    "url": "https://github.com/axetroy/wxapp-XMLHttpRequest/issues"
   },
-  "homepage": "https://github.com/axetroy/wxpp-XMLHttpRequest#readme",
+  "homepage": "https://github.com/axetroy/wxapp-XMLHttpRequest#readme",
   "devDependencies": {
     "all-contributors-cli": "^4.5.0",
     "ava": "^0.22.0",

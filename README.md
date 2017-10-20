@@ -1,21 +1,21 @@
-# wxpp-XMLHttpRequest
+# wxapp-XMLHttpRequest
 
-[![Greenkeeper badge](https://badges.greenkeeper.io/axetroy/wxpp-XMLHttpRequest.svg)](https://greenkeeper.io/)
-[![Build Status](https://travis-ci.org/axetroy/wxpp-XMLHttpRequest.svg?branch=master)](https://travis-ci.org/axetroy/wxpp-XMLHttpRequest)
-[![Dependency](https://david-dm.org/axetroy/wxpp-XMLHttpRequest.svg)](https://david-dm.org/axetroy/wxpp-XMLHttpRequest)
+[![Greenkeeper badge](https://badges.greenkeeper.io/axetroy/wxapp-XMLHttpRequest.svg)](https://greenkeeper.io/)
+[![Build Status](https://travis-ci.org/axetroy/wxapp-XMLHttpRequest.svg?branch=master)](https://travis-ci.org/axetroy/wxapp-XMLHttpRequest)
+[![Dependency](https://david-dm.org/axetroy/wxapp-XMLHttpRequest.svg)](https://david-dm.org/axetroy/wxapp-XMLHttpRequest)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 [![Prettier](https://img.shields.io/badge/Code%20Style-Prettier-green.svg)](https://github.com/prettier/prettier)
 ![Node](https://img.shields.io/badge/node-%3E=6.0-blue.svg?style=flat-square)
-[![npm version](https://badge.fury.io/js/wxpp-XMLHttpRequest.svg)](https://badge.fury.io/js/wxpp-XMLHttpRequest)
+[![npm version](https://badge.fury.io/js/wxapp-XMLHttpRequest.svg)](https://badge.fury.io/js/wxapp-XMLHttpRequest)
 
 微信小程序的XMLHttpRequest实现
 
 ## Installation
 ```bash
-npm install wxpp-XMLHttpRequest --save
+npm install wxapp-XMLHttpRequest --save
 ```
 
-[example](https://github.com/axetroy/wxpp-XMLHttpRequest/tree/master/example)
+[example](https://github.com/axetroy/wxapp-XMLHttpRequest/tree/master/example)
 
 ## Features
 
@@ -27,10 +27,10 @@ npm install wxpp-XMLHttpRequest --save
 ```javascript
 
 // es6
-import XMLHttpRequest from 'wxpp-XMLHttpRequest';
+import XMLHttpRequest from 'wxapp-XMLHttpRequest';
 
 // commonJS
-const XMLHttpRequest = require('wxpp-XMLHttpRequest').default;
+const XMLHttpRequest = require('wxapp-XMLHttpRequest').default;
 
 const request = new XMLHttpRequest();
 
@@ -66,26 +66,26 @@ request.send('hello world');
 ## Contributing
 
 ```bash
-git clone https://github.com/axetroy/wxpp-XMLHttpRequest.git
-cd ./wxpp-XMLHttpRequest
+git clone https://github.com/axetroy/wxapp-XMLHttpRequest.git
+cd ./wxapp-XMLHttpRequest
 yarn
 yarn run start
 ```
 
-1. 打开微信web开发者工具， 加载wxpp-XMLHttpRequest/example目录
+1. 打开微信web开发者工具， 加载wxapp-XMLHttpRequest/example目录
 2. 修改index.ts
 
 欢迎PR.
 
-You can flow [Contribute Guide](https://github.com/axetroy/wxpp-XMLHttpRequest/blob/master/contributing.md)
+You can flow [Contribute Guide](https://github.com/axetroy/wxapp-XMLHttpRequest/blob/master/contributing.md)
 
 ## Contributors
 
 <!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
-| [<img src="https://avatars1.githubusercontent.com/u/9758711?v=3" width="100px;"/><br /><sub>Axetroy</sub>](http://axetroy.github.io)<br />[💻](https://github.com/axetroy/wxpp-XMLHttpRequest/commits?author=axetroy "Code") [🔌](#plugin-axetroy "Plugin/utility libraries") [⚠️](https://github.com/axetroy/wxpp-XMLHttpRequest/commits?author=axetroy "Tests") [🐛](https://github.com/axetroy/wxpp-XMLHttpRequest/issues?q=author%3Aaxetroy "Bug reports") [🎨](#design-axetroy "Design") |
+| [<img src="https://avatars1.githubusercontent.com/u/9758711?v=3" width="100px;"/><br /><sub>Axetroy</sub>](http://axetroy.github.io)<br />[💻](https://github.com/axetroy/wxapp-XMLHttpRequest/commits?author=axetroy "Code") [🔌](#plugin-axetroy "Plugin/utility libraries") [⚠️](https://github.com/axetroy/wxapp-XMLHttpRequest/commits?author=axetroy "Tests") [🐛](https://github.com/axetroy/wxapp-XMLHttpRequest/issues?q=author%3Aaxetroy "Bug reports") [🎨](#design-axetroy "Design") |
 | :---: |
 <!-- ALL-CONTRIBUTORS-LIST:END -->
 
 ## License
 
-The [MIT License](https://github.com/axetroy/wxpp-XMLHttpRequest/blob/master/LICENSE)
+The [MIT License](https://github.com/axetroy/wxapp-XMLHttpRequest/blob/master/LICENSE)
