@@ -76,7 +76,12 @@ request.send('hello world');
 ## Related
 
 [wxapp-fetch](https://github.com/axetroy/wxapp-fetch) fetch API implement for WeCHat App
+
 [wxapp-http](https://github.com/axetroy/wxapp-http) 微信小程序的http模块，Tiny but Powerful
+
+[wxapp-XMLHttpRequest](https://github.com/axetroy/wxapp-XMLHttpRequest) Web XMLHttpRequest implement for WeChat APP
+
+[wxapp-r2](https://github.com/axetroy/wxapp-r2) r2 implement in Wechat App client
 
 ## Contributing
 
