@@ -182,6 +182,73 @@ var OPENED = 1;
 var HEADERS_RECEIVED = 2;
 var LOADING = 3;
 var DONE = 4;
+var EVENT_READY_STATE_CHANGE = 'readystatechange';
+var EVENT_ERROR = 'error';
+var EVENT_TIMEOUT = 'timeout';
+var EVENT_ABORT = 'abort';
+var HTTP_CODE2TEXT = {
+    100: 'Continue',
+    101: 'Switching Protocol',
+    102: 'Processing',
+    200: 'OK',
+    201: 'Created',
+    202: 'Accepted',
+    203: 'Non-Authoritative Information',
+    204: 'No Content',
+    205: 'Reset Content',
+    206: 'Partial Content',
+    207: 'Multi-Status',
+    208: 'Multi-Status',
+    226: 'IM Used',
+    300: 'Multiple Choice',
+    301: 'Moved Permanently',
+    302: 'Found',
+    303: 'See Other',
+    304: 'Not Modified',
+    305: 'Use Proxy',
+    306: 'unused',
+    307: 'Temporary Redirect',
+    308: 'Permanent Redirect',
+    400: 'Bad Request',
+    401: 'Unauthorized',
+    402: 'Payment Required',
+    403: 'Forbidden',
+    404: 'Not Found',
+    405: 'Method Not Allowed',
+    406: 'Not Acceptable',
+    407: 'Proxy Authentication Required',
+    408: 'Request Timeout',
+    409: 'Conflict',
+    410: 'Gone',
+    411: 'Length Required',
+    412: 'Precondition Failed',
+    413: 'Payload Too Large',
+    414: 'URI Too Long',
+    415: 'Unsupported Media Type',
+    416: 'Requested Range Not Satisfiable',
+    417: 'Expectation Failed',
+    418: "I'm a teapot",
+    421: 'Misdirected Request',
+    422: 'Unprocessable Entity',
+    423: 'Locked',
+    424: 'Failed Dependency',
+    426: 'Upgrade Required',
+    428: 'Precondition Required',
+    429: 'Too Many Requests',
+    431: 'Request Header Fields Too Large',
+    451: 'Unavailable For Legal Reasons',
+    500: 'Internal Server Error',
+    501: 'Not Implemented',
+    502: 'Bad Gateway',
+    503: 'Service Unavailable',
+    504: 'Gateway Timeout',
+    505: 'HTTP Version Not Supported',
+    506: 'Variant Also Negotiates',
+    507: 'Insufficient Storage',
+    508: 'Loop Detected',
+    510: 'Not Extended',
+    511: 'Network Authentication Required'
+};
 var _XMLHttpRequest = /** @class */ (function (_super) {
     __extends(_XMLHttpRequest, _super);
     function _XMLHttpRequest() {
@@ -212,17 +279,19 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         _this.__response = null;
         _this.__responseStatus = 0;
         _this.__timeout = 0;
-        _this.addEventListener('readystatechange', function (ev) {
+        _this.__haveTimeout = false;
+        _this.__requestDone = false;
+        _this.addEventListener(EVENT_READY_STATE_CHANGE, function (ev) {
             _this.onreadystatechangeHandler(ev);
         });
-        _this.addEventListener('timeout', function (ev) {
+        _this.addEventListener(EVENT_TIMEOUT, function (ev) {
             _this.ontimeoutHandler(ev);
         });
-        _this.addEventListener('abort', function (ev) {
+        _this.addEventListener(EVENT_ABORT, function (ev) {
             _this.onabortHandler(ev);
         });
-        _this.addEventListener('error', function (ev) {
-            _this.onabortHandler(ev);
+        _this.addEventListener(EVENT_ERROR, function (ev) {
+            _this.onerror(ev);
         });
         return _this;
     }
@@ -275,7 +344,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
     });
     Object.defineProperty(XMLHttpRequest.prototype, "statusText", {
         get: function () {
-            return this.status + '';
+            return HTTP_CODE2TEXT[this.status] || 'unknown';
         },
         enumerable: true,
         configurable: true
@@ -287,7 +356,10 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         enumerable: true,
         configurable: true
     });
-    // method
+    /**
+     * override mime type, not support yet
+     * @param mimetype
+     */
     XMLHttpRequest.prototype.overrideMimeType = function (mimetype) {
         if (this.readyState >= HEADERS_RECEIVED) {
             throw new Error("Can not apply 'overrideMimeType' after send data");
@@ -316,7 +388,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         this.user = user;
         this.password = password;
         this.__readyState = OPENED;
-        this.dispatchEvent(new Event('readystatechange'));
+        this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
     };
     /**
      * send data
@@ -324,17 +396,28 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      */
     XMLHttpRequest.prototype.send = function (data) {
         var _this = this;
-        this.__readyState = HEADERS_RECEIVED;
-        this.dispatchEvent(new Event('readystatechange'));
-        this.__readyState = LOADING;
-        this.dispatchEvent(new Event('readystatechange'));
+        if (this.__readyState < OPENED) {
+            throw new Error("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.");
+        }
+        // if the request have been aborted before send data
+        if (this.aborted === true) {
+            return;
+        }
+        // can not resend
+        if (this.__requestDone) {
+            return;
+        }
         var timer = null;
-        var haveTimeout = false;
         if (this.timeout > 0) {
             timer = setTimeout(function () {
-                haveTimeout = true;
-                _this.requestTask.abort();
-                _this.dispatchEvent(new Event('timeout'));
+                if (_this.aborted === true) {
+                    return;
+                }
+                _this.__haveTimeout = true;
+                if (_this.requestTask) {
+                    _this.requestTask.abort();
+                }
+                _this.dispatchEvent(new Event(EVENT_TIMEOUT));
             }, this.timeout);
         }
         this.requestTask = this.requestTask = wx.request({
@@ -344,30 +427,38 @@ var XMLHttpRequest = /** @class */ (function (_super) {
             data: data,
             dataType: 'json',
             success: function (res) {
-                if (haveTimeout)
+                if (_this.__haveTimeout || _this.aborted)
                     return;
                 timer && clearTimeout(timer);
+                _this.__requestDone = true;
+                _this.requestTask = null;
                 _this.__responseStatus = res.statusCode;
                 _this.__responseHeader = res.header;
                 _this.__response = res.data === void 0 ? null : res.data;
                 if (_this.__responseStatus >= 400) {
-                    _this.dispatchEvent(new Event('error'));
+                    _this.dispatchEvent(new Event(EVENT_ERROR));
                 }
             },
             fail: function (res) {
-                if (haveTimeout)
+                if (_this.__haveTimeout || _this.aborted)
                     return;
                 timer && clearTimeout(timer);
+                _this.__requestDone = true;
+                _this.requestTask = null;
                 _this.__responseStatus = res.statusCode;
                 _this.__responseHeader = res.header;
                 _this.__response = res.data === void 0 ? null : res.data;
-                _this.dispatchEvent(new Event('error'));
+                _this.dispatchEvent(new Event(EVENT_ERROR));
             },
             complete: function () {
-                if (haveTimeout)
+                if (_this.__haveTimeout || _this.aborted)
                     return;
+                _this.__readyState = HEADERS_RECEIVED;
+                _this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
+                _this.__readyState = LOADING;
+                _this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
                 _this.__readyState = DONE;
-                _this.dispatchEvent(new Event('readystatechange'));
+                _this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
             }
         });
     };
@@ -375,9 +466,16 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      * abort the request after send
      */
     XMLHttpRequest.prototype.abort = function () {
-        typeof this.requestTask === 'function' && this.requestTask();
+        // if the request have been aborted or have finish the quest
+        // do nothing and return void
+        if (this.aborted || this.__requestDone) {
+            return;
+        }
+        if (this.requestTask) {
+            this.requestTask.abort();
+        }
         this.aborted = true;
-        this.dispatchEvent(new Event('abort'));
+        this.dispatchEvent(new Event(EVENT_ABORT));
     };
     /**
      * set request header

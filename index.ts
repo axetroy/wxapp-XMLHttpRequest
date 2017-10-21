@@ -74,6 +74,75 @@ const HEADERS_RECEIVED: number = 2;
 const LOADING: number = 3;
 const DONE: number = 4;
 
+const EVENT_READY_STATE_CHANGE: string = 'readystatechange';
+const EVENT_ERROR: string = 'error';
+const EVENT_TIMEOUT: string = 'timeout';
+const EVENT_ABORT: string = 'abort';
+
+const HTTP_CODE2TEXT = {
+  100: 'Continue',
+  101: 'Switching Protocol',
+  102: 'Processing',
+  200: 'OK',
+  201: 'Created',
+  202: 'Accepted',
+  203: 'Non-Authoritative Information',
+  204: 'No Content',
+  205: 'Reset Content',
+  206: 'Partial Content',
+  207: 'Multi-Status',
+  208: 'Multi-Status',
+  226: 'IM Used',
+  300: 'Multiple Choice',
+  301: 'Moved Permanently',
+  302: 'Found',
+  303: 'See Other',
+  304: 'Not Modified',
+  305: 'Use Proxy',
+  306: 'unused',
+  307: 'Temporary Redirect',
+  308: 'Permanent Redirect',
+  400: 'Bad Request',
+  401: 'Unauthorized',
+  402: 'Payment Required',
+  403: 'Forbidden',
+  404: 'Not Found',
+  405: 'Method Not Allowed',
+  406: 'Not Acceptable',
+  407: 'Proxy Authentication Required',
+  408: 'Request Timeout',
+  409: 'Conflict',
+  410: 'Gone',
+  411: 'Length Required',
+  412: 'Precondition Failed',
+  413: 'Payload Too Large',
+  414: 'URI Too Long',
+  415: 'Unsupported Media Type',
+  416: 'Requested Range Not Satisfiable',
+  417: 'Expectation Failed',
+  418: "I'm a teapot",
+  421: 'Misdirected Request',
+  422: 'Unprocessable Entity',
+  423: 'Locked',
+  424: 'Failed Dependency',
+  426: 'Upgrade Required',
+  428: 'Precondition Required',
+  429: 'Too Many Requests',
+  431: 'Request Header Fields Too Large',
+  451: 'Unavailable For Legal Reasons',
+  500: 'Internal Server Error',
+  501: 'Not Implemented',
+  502: 'Bad Gateway',
+  503: 'Service Unavailable',
+  504: 'Gateway Timeout',
+  505: 'HTTP Version Not Supported',
+  506: 'Variant Also Negotiates',
+  507: 'Insufficient Storage',
+  508: 'Loop Detected',
+  510: 'Not Extended',
+  511: 'Network Authentication Required'
+};
+
 class _XMLHttpRequest extends XMLHttpRequestEventTarget {
   public DONE = DONE;
   public LOADING = LOADING;
@@ -102,20 +171,22 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
   private __response: any = null;
   private __responseStatus: number = 0;
   private __timeout: number = 0;
+  private __haveTimeout: boolean = false;
+  private __requestDone: boolean = false;
 
   constructor() {
     super();
-    this.addEventListener('readystatechange', ev => {
+    this.addEventListener(EVENT_READY_STATE_CHANGE, ev => {
       this.onreadystatechangeHandler(ev);
     });
-    this.addEventListener('timeout', ev => {
+    this.addEventListener(EVENT_TIMEOUT, ev => {
       this.ontimeoutHandler(ev);
     });
-    this.addEventListener('abort', ev => {
+    this.addEventListener(EVENT_ABORT, ev => {
       this.onabortHandler(ev);
     });
-    this.addEventListener('error', ev => {
-      this.onabortHandler(ev);
+    this.addEventListener(EVENT_ERROR, ev => {
+      this.onerror(ev);
     });
   }
 
@@ -141,17 +212,20 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
   set timeout(millisecond: number) {
     this.__timeout = millisecond;
   }
-  get status() {
+  get status(): number {
     return this.__responseStatus;
   }
-  get statusText() {
-    return this.status + '';
+  get statusText(): string {
+    return HTTP_CODE2TEXT[this.status] || 'unknown';
   }
   get responseType() {
     return this.__responseType;
   }
 
-  // method
+  /**
+   * override mime type, not support yet
+   * @param mimetype
+   */
   overrideMimeType(mimetype) {
     if (this.readyState >= HEADERS_RECEIVED) {
       throw new Error(`Can not apply 'overrideMimeType' after send data`);
@@ -179,7 +253,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
     this.password = password;
 
     this.__readyState = OPENED;
-    this.dispatchEvent(new Event('readystatechange'));
+    this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
   }
 
   /**
@@ -187,19 +261,34 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
    * @param data
    */
   send(data?: string | Object) {
-    this.__readyState = HEADERS_RECEIVED;
-    this.dispatchEvent(new Event('readystatechange'));
-    this.__readyState = LOADING;
-    this.dispatchEvent(new Event('readystatechange'));
+    if (this.__readyState < OPENED) {
+      throw new Error(
+        `Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.`
+      );
+    }
+
+    // if the request have been aborted before send data
+    if (this.aborted === true) {
+      return;
+    }
+
+    // can not resend
+    if (this.__requestDone) {
+      return;
+    }
 
     let timer = null;
-    let haveTimeout: boolean = false;
 
     if (this.timeout > 0) {
       timer = setTimeout(() => {
-        haveTimeout = true;
-        this.requestTask.abort();
-        this.dispatchEvent(new Event('timeout'));
+        if (this.aborted === true) {
+          return;
+        }
+        this.__haveTimeout = true;
+        if (this.requestTask) {
+          this.requestTask.abort();
+        }
+        this.dispatchEvent(new Event(EVENT_TIMEOUT));
       }, this.timeout);
     }
 
@@ -210,27 +299,36 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
       data: data,
       dataType: 'json',
       success: res => {
-        if (haveTimeout) return;
+        if (this.__haveTimeout || this.aborted) return;
         timer && clearTimeout(timer);
+        this.__requestDone = true;
+        this.requestTask = null;
         this.__responseStatus = res.statusCode;
         this.__responseHeader = res.header;
         this.__response = res.data === void 0 ? null : res.data;
         if (this.__responseStatus >= 400) {
-          this.dispatchEvent(new Event('error'));
+          this.dispatchEvent(new Event(EVENT_ERROR));
         }
       },
       fail: res => {
-        if (haveTimeout) return;
+        if (this.__haveTimeout || this.aborted) return;
         timer && clearTimeout(timer);
+        this.__requestDone = true;
+        this.requestTask = null;
         this.__responseStatus = res.statusCode;
         this.__responseHeader = res.header;
         this.__response = res.data === void 0 ? null : res.data;
-        this.dispatchEvent(new Event('error'));
+        this.dispatchEvent(new Event(EVENT_ERROR));
       },
       complete: () => {
-        if (haveTimeout) return;
+        if (this.__haveTimeout || this.aborted) return;
+
+        this.__readyState = HEADERS_RECEIVED;
+        this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
+        this.__readyState = LOADING;
+        this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
         this.__readyState = DONE;
-        this.dispatchEvent(new Event('readystatechange'));
+        this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
       }
     });
   }
@@ -239,9 +337,16 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
    * abort the request after send
    */
   abort() {
-    typeof this.requestTask === 'function' && this.requestTask();
+    // if the request have been aborted or have finish the quest
+    // do nothing and return void
+    if (this.aborted || this.__requestDone) {
+      return;
+    }
+    if (this.requestTask) {
+      this.requestTask.abort();
+    }
     this.aborted = true;
-    this.dispatchEvent(new Event('abort'));
+    this.dispatchEvent(new Event(EVENT_ABORT));
   }
 
   /**
