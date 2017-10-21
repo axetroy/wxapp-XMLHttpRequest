@@ -123,13 +123,13 @@ class XMLHttpRequest extends _XMLHttpRequest {
       this.__onreadystatechangeHandler(ev);
     });
     this.addEventListener(EVENT_TIMEOUT, ev => {
-      this.ontimeoutHandler(ev);
+      this.__ontimeoutHandler(ev);
     });
     this.addEventListener(EVENT_ABORT, ev => {
-      this.onabortHandler(ev);
+      this.__onabortHandler(ev);
     });
     this.addEventListener(EVENT_ERROR, ev => {
-      this.onerror(ev);
+      this.__onerrorHandler(ev);
     });
   }
 
