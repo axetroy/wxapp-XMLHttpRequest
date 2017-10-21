@@ -154,6 +154,16 @@ class _XMLHttpRequest extends XMLHttpRequestEventTarget {
   }
 }
 
+function lowerCaseIfy(headers) {
+  let output = {};
+  for (let header in headers) {
+    if (headers.hasOwnProperty(header)) {
+      output[header.toLowerCase()] = headers[header];
+    }
+  }
+  return output;
+}
+
 export default class XMLHttpRequest extends _XMLHttpRequest {
   private url: string;
   private method: string = 'GET';
@@ -304,7 +314,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
         this.__requestDone = true;
         this.requestTask = null;
         this.__responseStatus = res.statusCode;
-        this.__responseHeader = res.header;
+        this.__responseHeader = lowerCaseIfy(res.header);
         this.__response = res.data === void 0 ? null : res.data;
         if (this.__responseStatus >= 400) {
           this.dispatchEvent(new Event(EVENT_ERROR));
@@ -316,7 +326,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
         this.__requestDone = true;
         this.requestTask = null;
         this.__responseStatus = res.statusCode;
-        this.__responseHeader = res.header;
+        this.__responseHeader = lowerCaseIfy(res.header);
         this.__response = res.data === void 0 ? null : res.data;
         this.dispatchEvent(new Event(EVENT_ERROR));
       },
@@ -370,7 +380,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
    * @returns {null}
    */
   getResponseHeader(header) {
-    const val = this.__responseHeader[header];
+    const val = this.__responseHeader[header.toLowerCase()];
     return val !== undefined ? val : null;
   }
 
@@ -380,12 +390,13 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
    */
   getAllResponseHeaders() {
     const headers = [];
-    for (let header in this.__responseHeader) {
-      if (this.__responseHeader.hasOwnProperty(header)) {
-        const value = this.__responseHeader[header];
-        headers.push(`${header}=${value}`);
+    const headersObject = lowerCaseIfy(this.__responseHeader);
+    for (let header in headersObject) {
+      if (headersObject.hasOwnProperty(header)) {
+        const value = headersObject[header];
+        headers.push(`${header.toLowerCase()}: ${value}`);
       }
     }
-    return headers.join(';');
+    return headers.join('\n');
   }
 }

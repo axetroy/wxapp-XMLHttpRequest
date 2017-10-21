@@ -23,10 +23,12 @@ Page({
     request.onreadystatechange = e => {
       console.log(e);
       if (request.readyState === 4) {
-        console.log(request.response);
         console.log(request.status);
         console.log(request.statusText);
-        this.setData({ response: request.response });
+        console.log(request.getResponseHeader('Status'));
+        console.log(request.getAllResponseHeaders());
+        console.log(request.response);
+        // this.setData({ response: request.response });
       }
     };
 
@@ -34,7 +36,7 @@ Page({
       console.error(`request have been abort...`);
     };
 
-    request.open('GET', 'https://www.baidu.com');
+    request.open('GET', 'https://api.github.com');
 
     request.setRequestHeader('hello', 'world 123');
 

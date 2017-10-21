@@ -262,6 +262,15 @@ var _XMLHttpRequest = /** @class */ (function (_super) {
     }
     return _XMLHttpRequest;
 }(XMLHttpRequestEventTarget));
+function lowerCaseIfy(headers) {
+    var output = {};
+    for (var header in headers) {
+        if (headers.hasOwnProperty(header)) {
+            output[header.toLowerCase()] = headers[header];
+        }
+    }
+    return output;
+}
 var XMLHttpRequest = /** @class */ (function (_super) {
     __extends(XMLHttpRequest, _super);
     function XMLHttpRequest() {
@@ -433,7 +442,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
                 _this.__requestDone = true;
                 _this.requestTask = null;
                 _this.__responseStatus = res.statusCode;
-                _this.__responseHeader = res.header;
+                _this.__responseHeader = lowerCaseIfy(res.header);
                 _this.__response = res.data === void 0 ? null : res.data;
                 if (_this.__responseStatus >= 400) {
                     _this.dispatchEvent(new Event(EVENT_ERROR));
@@ -446,7 +455,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
                 _this.__requestDone = true;
                 _this.requestTask = null;
                 _this.__responseStatus = res.statusCode;
-                _this.__responseHeader = res.header;
+                _this.__responseHeader = lowerCaseIfy(res.header);
                 _this.__response = res.data === void 0 ? null : res.data;
                 _this.dispatchEvent(new Event(EVENT_ERROR));
             },
@@ -495,7 +504,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      * @returns {null}
      */
     XMLHttpRequest.prototype.getResponseHeader = function (header) {
-        var val = this.__responseHeader[header];
+        var val = this.__responseHeader[header.toLowerCase()];
         return val !== undefined ? val : null;
     };
     /**
@@ -504,13 +513,14 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      */
     XMLHttpRequest.prototype.getAllResponseHeaders = function () {
         var headers = [];
-        for (var header in this.__responseHeader) {
-            if (this.__responseHeader.hasOwnProperty(header)) {
-                var value = this.__responseHeader[header];
-                headers.push(header + "=" + value);
+        var headersObject = lowerCaseIfy(this.__responseHeader);
+        for (var header in headersObject) {
+            if (headersObject.hasOwnProperty(header)) {
+                var value = headersObject[header];
+                headers.push(header.toLowerCase() + ": " + value);
             }
         }
-        return headers.join(';');
+        return headers.join('\n');
     };
     return XMLHttpRequest;
 }(_XMLHttpRequest));
