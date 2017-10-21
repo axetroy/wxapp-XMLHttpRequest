@@ -5,12 +5,6 @@
 
 import _XMLHttpRequest from './lib/XMLHttpRequest';
 
-const UNSENT: number = 0;
-const OPENED: number = 1;
-const HEADERS_RECEIVED: number = 2;
-const LOADING: number = 3;
-const DONE: number = 4;
-
 // http event
 const EVENT_READY_STATE_CHANGE: string = 'readystatechange';
 const EVENT_ERROR: string = 'error';
@@ -107,7 +101,7 @@ class XMLHttpRequest extends _XMLHttpRequest {
   private __responseHeader: HttpHeader$ = {};
   private __aborted: boolean = false;
   private __requestTask: RequestTask$ = null; // this is WeChat app's request task return, for abort the request
-  private __readyState: number = UNSENT;
+  private __readyState: number = this.UNSENT;
   private __onreadystatechangeHandler = (event: Event) => {};
   private __withCredentials: boolean = true; // default is true
   private __responseType: RESPONSE_TEXT | null = null;
@@ -184,8 +178,8 @@ class XMLHttpRequest extends _XMLHttpRequest {
    * override mime type, not support yet
    * @param mimetype
    */
-  overrideMimeType(mimetype) {
-    if (this.readyState >= HEADERS_RECEIVED) {
+  overrideMimeType(mimetype: string) {
+    if (this.readyState >= this.HEADERS_RECEIVED) {
       throw new Error(`Can not apply 'overrideMimeType' after send data`);
     }
   }
@@ -200,7 +194,7 @@ class XMLHttpRequest extends _XMLHttpRequest {
    */
   open(method, url, async = true, user = null, password = null) {
     // if open over 2 time, then close connection
-    if (this.readyState >= OPENED) {
+    if (this.readyState >= this.OPENED) {
       this.abort();
       return;
     }
@@ -210,7 +204,7 @@ class XMLHttpRequest extends _XMLHttpRequest {
     this.__user = user;
     this.__password = password;
 
-    this.__readyState = OPENED;
+    this.__readyState = this.OPENED;
     this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
   }
 
@@ -218,8 +212,8 @@ class XMLHttpRequest extends _XMLHttpRequest {
    * send data
    * @param data
    */
-  send(data?: string | Object) {
-    if (this.__readyState < OPENED) {
+  send(data?: string | Object | ArrayBuffer | FormData | Document) {
+    if (this.__readyState < this.OPENED) {
       throw new Error(
         `Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.`
       );
@@ -281,11 +275,11 @@ class XMLHttpRequest extends _XMLHttpRequest {
       complete: () => {
         if (this.__haveTimeout || this.__aborted) return;
 
-        this.__readyState = HEADERS_RECEIVED;
+        this.__readyState = this.HEADERS_RECEIVED;
         this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
-        this.__readyState = LOADING;
+        this.__readyState = this.LOADING;
         this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
-        this.__readyState = DONE;
+        this.__readyState = this.DONE;
         this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
       }
     });
@@ -314,7 +308,7 @@ class XMLHttpRequest extends _XMLHttpRequest {
    */
   setRequestHeader(header, value) {
     // not call .open() yet
-    if (this.readyState < OPENED) {
+    if (this.readyState < this.OPENED) {
       throw new Error(
         `Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.`
       );

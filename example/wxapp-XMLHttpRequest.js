@@ -95,11 +95,6 @@ var __extends = (this && this.__extends) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 var XMLHttpRequest_1 = __webpack_require__(1);
-var UNSENT = 0;
-var OPENED = 1;
-var HEADERS_RECEIVED = 2;
-var LOADING = 3;
-var DONE = 4;
 // http event
 var EVENT_READY_STATE_CHANGE = 'readystatechange';
 var EVENT_ERROR = 'error';
@@ -189,7 +184,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         _this.__responseHeader = {};
         _this.__aborted = false;
         _this.__requestTask = null; // this is WeChat app's request task return, for abort the request
-        _this.__readyState = UNSENT;
+        _this.__readyState = _this.UNSENT;
         _this.__onreadystatechangeHandler = function (event) { };
         _this.__withCredentials = true; // default is true
         _this.__responseType = null;
@@ -202,13 +197,13 @@ var XMLHttpRequest = /** @class */ (function (_super) {
             _this.__onreadystatechangeHandler(ev);
         });
         _this.addEventListener(EVENT_TIMEOUT, function (ev) {
-            _this.ontimeoutHandler(ev);
+            _this.__ontimeoutHandler(ev);
         });
         _this.addEventListener(EVENT_ABORT, function (ev) {
-            _this.onabortHandler(ev);
+            _this.__onabortHandler(ev);
         });
         _this.addEventListener(EVENT_ERROR, function (ev) {
-            _this.onerror(ev);
+            _this.__onerrorHandler(ev);
         });
         return _this;
     }
@@ -298,7 +293,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      * @param mimetype
      */
     XMLHttpRequest.prototype.overrideMimeType = function (mimetype) {
-        if (this.readyState >= HEADERS_RECEIVED) {
+        if (this.readyState >= this.HEADERS_RECEIVED) {
             throw new Error("Can not apply 'overrideMimeType' after send data");
         }
     };
@@ -315,7 +310,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         if (user === void 0) { user = null; }
         if (password === void 0) { password = null; }
         // if open over 2 time, then close connection
-        if (this.readyState >= OPENED) {
+        if (this.readyState >= this.OPENED) {
             this.abort();
             return;
         }
@@ -324,7 +319,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         this.__async = async;
         this.__user = user;
         this.__password = password;
-        this.__readyState = OPENED;
+        this.__readyState = this.OPENED;
         this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
     };
     /**
@@ -333,7 +328,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      */
     XMLHttpRequest.prototype.send = function (data) {
         var _this = this;
-        if (this.__readyState < OPENED) {
+        if (this.__readyState < this.OPENED) {
             throw new Error("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.");
         }
         // if the request have been aborted before send data
@@ -390,11 +385,11 @@ var XMLHttpRequest = /** @class */ (function (_super) {
             complete: function () {
                 if (_this.__haveTimeout || _this.__aborted)
                     return;
-                _this.__readyState = HEADERS_RECEIVED;
+                _this.__readyState = _this.HEADERS_RECEIVED;
                 _this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
-                _this.__readyState = LOADING;
+                _this.__readyState = _this.LOADING;
                 _this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
-                _this.__readyState = DONE;
+                _this.__readyState = _this.DONE;
                 _this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
             }
         });
@@ -421,7 +416,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      */
     XMLHttpRequest.prototype.setRequestHeader = function (header, value) {
         // not call .open() yet
-        if (this.readyState < OPENED) {
+        if (this.readyState < this.OPENED) {
             throw new Error("Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.");
         }
         this.__requestHeader[header] = value + '';
@@ -516,37 +511,37 @@ var XMLHttpRequestEventTarget = /** @class */ (function (_super) {
     __extends(XMLHttpRequestEventTarget, _super);
     function XMLHttpRequestEventTarget() {
         var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.onabortHandler = function (event) { };
-        _this.onerrorHandler = function (event) { };
-        _this.ontimeoutHandler = function (event) { };
+        _this.__onabortHandler = function (event) { };
+        _this.__onerrorHandler = function (event) { };
+        _this.__ontimeoutHandler = function (event) { };
         return _this;
     }
     Object.defineProperty(XMLHttpRequestEventTarget.prototype, "onabort", {
         get: function () {
-            return this.onabortHandler || null;
+            return this.__onabortHandler || null;
         },
         set: function (func) {
-            this.onabortHandler = func;
+            this.__onabortHandler = func;
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(XMLHttpRequestEventTarget.prototype, "onerror", {
         get: function () {
-            return this.onerrorHandler || null;
+            return this.__onerrorHandler || null;
         },
         set: function (func) {
-            this.onerrorHandler = func;
+            this.__onerrorHandler = func;
         },
         enumerable: true,
         configurable: true
     });
     Object.defineProperty(XMLHttpRequestEventTarget.prototype, "ontimeout", {
         get: function () {
-            return this.ontimeoutHandler || null;
+            return this.__ontimeoutHandler || null;
         },
         set: function (func) {
-            this.ontimeoutHandler = func;
+            this.__ontimeoutHandler = func;
         },
         enumerable: true,
         configurable: true
