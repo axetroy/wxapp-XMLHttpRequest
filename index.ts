@@ -3,70 +3,7 @@
  */
 /// <reference path="./index.d.ts" />
 
-class _EventTarget {
-  private listeners = {};
-  constructor() {}
-  addEventListener(type, callback) {
-    if (!(type in this.listeners)) {
-      this.listeners[type] = [];
-    }
-    this.listeners[type].push(callback);
-  }
-  removeEventListener(type, callback) {
-    if (!(type in this.listeners)) {
-      return;
-    }
-    const stack = this.listeners[type];
-    for (let i = 0, l = stack.length; i < l; i++) {
-      if (stack[i] === callback) {
-        stack.splice(i, 1);
-        return this.removeEventListener(type, callback);
-      }
-    }
-  }
-  dispatchEvent(event) {
-    if (!(event.type in this.listeners)) {
-      return;
-    }
-    const stack = this.listeners[event.type];
-    Object.defineProperty(event, 'target', {
-      value: this
-    });
-    Object.defineProperty(event, 'srcElement', {
-      value: this
-    });
-    Object.defineProperty(event, 'currentTarget', {
-      value: this
-    });
-    for (let i = 0, l = stack.length; i < l; i++) {
-      stack[i].call(this, event);
-    }
-  }
-}
-
-class XMLHttpRequestEventTarget extends _EventTarget {
-  onabortHandler = (err: any) => {};
-  onerrorHandler = (err: any) => {};
-  ontimeoutHandler = (err: any) => {};
-  get onabort() {
-    return this.onabortHandler || null;
-  }
-  set onabort(func) {
-    this.onabortHandler = func;
-  }
-  get onerror() {
-    return this.onerrorHandler || null;
-  }
-  set onerror(func) {
-    this.onerrorHandler = func;
-  }
-  get ontimeout() {
-    return this.ontimeoutHandler || null;
-  }
-  set ontimeout(func) {
-    this.ontimeoutHandler = func;
-  }
-}
+import _XMLHttpRequest from './lib/XMLHttpRequest';
 
 const UNSENT: number = 0;
 const OPENED: number = 1;
@@ -74,11 +11,13 @@ const HEADERS_RECEIVED: number = 2;
 const LOADING: number = 3;
 const DONE: number = 4;
 
+// http event
 const EVENT_READY_STATE_CHANGE: string = 'readystatechange';
 const EVENT_ERROR: string = 'error';
 const EVENT_TIMEOUT: string = 'timeout';
 const EVENT_ABORT: string = 'abort';
 
+// http status code and text
 const HTTP_CODE2TEXT = {
   100: 'Continue',
   101: 'Switching Protocol',
@@ -143,16 +82,7 @@ const HTTP_CODE2TEXT = {
   511: 'Network Authentication Required'
 };
 
-class _XMLHttpRequest extends XMLHttpRequestEventTarget {
-  public DONE = DONE;
-  public LOADING = LOADING;
-  public HEADERS_RECEIVED = HEADERS_RECEIVED;
-  public OPENED = OPENED;
-  public UNSENT = UNSENT;
-  constructor() {
-    super();
-  }
-}
+type RESPONSE_TEXT = '' | 'arraybuffer' | 'blob' | 'document' | 'json' | 'text';
 
 function lowerCaseIfy(headers) {
   let output = {};
@@ -164,20 +94,23 @@ function lowerCaseIfy(headers) {
   return output;
 }
 
-export default class XMLHttpRequest extends _XMLHttpRequest {
-  private url: string;
-  private method: string = 'GET';
-  private async: boolean = true;
-  private user: string;
-  private password: string;
-  private requestHeader: HttpHeader$ = {};
+class XMLHttpRequest extends _XMLHttpRequest {
+  private name: string = 'XMLHttpRequest';
+
+  // not standard prop
+  private __url: string;
+  private __method: string = null;
+  private __async: boolean = true;
+  private __user: string;
+  private __password: string;
+  private __requestHeader: HttpHeader$ = {};
   private __responseHeader: HttpHeader$ = {};
-  private aborted: boolean = false;
-  private requestTask: RequestTask$ = null; // 微信小程序返回的questTask，用于取消请求任务
+  private __aborted: boolean = false;
+  private __requestTask: RequestTask$ = null; // this is WeChat app's request task return, for abort the request
   private __readyState: number = UNSENT;
-  private onreadystatechangeHandler = (event: any) => {};
-  private withCredentials: boolean = false;
-  private __responseType: string = '';
+  private __onreadystatechangeHandler = (event: Event) => {};
+  private __withCredentials: boolean = true; // default is true
+  private __responseType: RESPONSE_TEXT | null = null;
   private __response: any = null;
   private __responseStatus: number = 0;
   private __timeout: number = 0;
@@ -187,7 +120,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
   constructor() {
     super();
     this.addEventListener(EVENT_READY_STATE_CHANGE, ev => {
-      this.onreadystatechangeHandler(ev);
+      this.__onreadystatechangeHandler(ev);
     });
     this.addEventListener(EVENT_TIMEOUT, ev => {
       this.ontimeoutHandler(ev);
@@ -204,8 +137,20 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
     return this.__readyState;
   }
 
+  get onreadystatechange() {
+    return this.__onreadystatechangeHandler;
+  }
+
   set onreadystatechange(callback) {
-    this.onreadystatechangeHandler = callback;
+    this.__onreadystatechangeHandler = callback;
+  }
+
+  get withCredentials(): boolean {
+    return this.__withCredentials;
+  }
+
+  set withCredentials(value: boolean) {
+    this.__withCredentials = value;
   }
 
   get response() {
@@ -215,6 +160,9 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
     return typeof this.__response === 'object'
       ? JSON.stringify(this.__response)
       : this.__response;
+  }
+  get responseURL(): string {
+    return this.__url;
   }
   get timeout(): number {
     return this.__timeout;
@@ -228,7 +176,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
   get statusText(): string {
     return HTTP_CODE2TEXT[this.status] || 'unknown';
   }
-  get responseType() {
+  get responseType(): RESPONSE_TEXT {
     return this.__responseType;
   }
 
@@ -256,11 +204,11 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
       this.abort();
       return;
     }
-    this.method = method;
-    this.url = url;
-    this.async = async;
-    this.user = user;
-    this.password = password;
+    this.__method = method;
+    this.__url = url;
+    this.__async = async;
+    this.__user = user;
+    this.__password = password;
 
     this.__readyState = OPENED;
     this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
@@ -278,7 +226,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
     }
 
     // if the request have been aborted before send data
-    if (this.aborted === true) {
+    if (this.__aborted === true) {
       return;
     }
 
@@ -291,28 +239,28 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
 
     if (this.timeout > 0) {
       timer = setTimeout(() => {
-        if (this.aborted === true) {
+        if (this.__aborted === true) {
           return;
         }
         this.__haveTimeout = true;
-        if (this.requestTask) {
-          this.requestTask.abort();
+        if (this.__requestTask) {
+          this.__requestTask.abort();
         }
         this.dispatchEvent(new Event(EVENT_TIMEOUT));
       }, this.timeout);
     }
 
-    this.requestTask = this.requestTask = wx.request({
-      url: this.url,
-      method: this.method,
-      header: this.requestHeader,
+    this.__requestTask = this.__requestTask = wx.request({
+      url: this.__url,
+      method: this.__method,
+      header: this.__requestHeader,
       data: data,
       dataType: 'json',
       success: res => {
-        if (this.__haveTimeout || this.aborted) return;
+        if (this.__haveTimeout || this.__aborted) return;
         timer && clearTimeout(timer);
         this.__requestDone = true;
-        this.requestTask = null;
+        this.__requestTask = null;
         this.__responseStatus = res.statusCode;
         this.__responseHeader = lowerCaseIfy(res.header);
         this.__response = res.data === void 0 ? null : res.data;
@@ -321,17 +269,17 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
         }
       },
       fail: res => {
-        if (this.__haveTimeout || this.aborted) return;
+        if (this.__haveTimeout || this.__aborted) return;
         timer && clearTimeout(timer);
         this.__requestDone = true;
-        this.requestTask = null;
+        this.__requestTask = null;
         this.__responseStatus = res.statusCode;
         this.__responseHeader = lowerCaseIfy(res.header);
         this.__response = res.data === void 0 ? null : res.data;
         this.dispatchEvent(new Event(EVENT_ERROR));
       },
       complete: () => {
-        if (this.__haveTimeout || this.aborted) return;
+        if (this.__haveTimeout || this.__aborted) return;
 
         this.__readyState = HEADERS_RECEIVED;
         this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
@@ -349,13 +297,13 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
   abort() {
     // if the request have been aborted or have finish the quest
     // do nothing and return void
-    if (this.aborted || this.__requestDone) {
+    if (this.__aborted || this.__requestDone) {
       return;
     }
-    if (this.requestTask) {
-      this.requestTask.abort();
+    if (this.__requestTask) {
+      this.__requestTask.abort();
     }
-    this.aborted = true;
+    this.__aborted = true;
     this.dispatchEvent(new Event(EVENT_ABORT));
   }
 
@@ -371,7 +319,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
         `Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.`
       );
     }
-    this.requestHeader[header] = value + '';
+    this.__requestHeader[header] = value + '';
   }
 
   /**
@@ -400,3 +348,5 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
     return headers.join('\n');
   }
 }
+
+export default XMLHttpRequest;

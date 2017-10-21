@@ -10,6 +10,8 @@ Page({
   onLoad: function() {
     const request = new XMLHttpRequest();
 
+    console.dir(request);
+
     request.timeout = 1000;
 
     request.ontimeout = function(err) {
@@ -28,7 +30,7 @@ Page({
         console.log(request.getResponseHeader('Status'));
         console.log(request.getAllResponseHeaders());
         console.log(request.response);
-        // this.setData({ response: request.response });
+        this.setData({ response: request.response });
       }
     };
 

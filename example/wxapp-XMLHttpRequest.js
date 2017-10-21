@@ -94,98 +94,18 @@ var __extends = (this && this.__extends) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-var _EventTarget = /** @class */ (function () {
-    function _EventTarget() {
-        this.listeners = {};
-    }
-    _EventTarget.prototype.addEventListener = function (type, callback) {
-        if (!(type in this.listeners)) {
-            this.listeners[type] = [];
-        }
-        this.listeners[type].push(callback);
-    };
-    _EventTarget.prototype.removeEventListener = function (type, callback) {
-        if (!(type in this.listeners)) {
-            return;
-        }
-        var stack = this.listeners[type];
-        for (var i = 0, l = stack.length; i < l; i++) {
-            if (stack[i] === callback) {
-                stack.splice(i, 1);
-                return this.removeEventListener(type, callback);
-            }
-        }
-    };
-    _EventTarget.prototype.dispatchEvent = function (event) {
-        if (!(event.type in this.listeners)) {
-            return;
-        }
-        var stack = this.listeners[event.type];
-        Object.defineProperty(event, 'target', {
-            value: this
-        });
-        Object.defineProperty(event, 'srcElement', {
-            value: this
-        });
-        Object.defineProperty(event, 'currentTarget', {
-            value: this
-        });
-        for (var i = 0, l = stack.length; i < l; i++) {
-            stack[i].call(this, event);
-        }
-    };
-    return _EventTarget;
-}());
-var XMLHttpRequestEventTarget = /** @class */ (function (_super) {
-    __extends(XMLHttpRequestEventTarget, _super);
-    function XMLHttpRequestEventTarget() {
-        var _this = _super !== null && _super.apply(this, arguments) || this;
-        _this.onabortHandler = function (err) { };
-        _this.onerrorHandler = function (err) { };
-        _this.ontimeoutHandler = function (err) { };
-        return _this;
-    }
-    Object.defineProperty(XMLHttpRequestEventTarget.prototype, "onabort", {
-        get: function () {
-            return this.onabortHandler || null;
-        },
-        set: function (func) {
-            this.onabortHandler = func;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(XMLHttpRequestEventTarget.prototype, "onerror", {
-        get: function () {
-            return this.onerrorHandler || null;
-        },
-        set: function (func) {
-            this.onerrorHandler = func;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    Object.defineProperty(XMLHttpRequestEventTarget.prototype, "ontimeout", {
-        get: function () {
-            return this.ontimeoutHandler || null;
-        },
-        set: function (func) {
-            this.ontimeoutHandler = func;
-        },
-        enumerable: true,
-        configurable: true
-    });
-    return XMLHttpRequestEventTarget;
-}(_EventTarget));
+var XMLHttpRequest_1 = __webpack_require__(1);
 var UNSENT = 0;
 var OPENED = 1;
 var HEADERS_RECEIVED = 2;
 var LOADING = 3;
 var DONE = 4;
+// http event
 var EVENT_READY_STATE_CHANGE = 'readystatechange';
 var EVENT_ERROR = 'error';
 var EVENT_TIMEOUT = 'timeout';
 var EVENT_ABORT = 'abort';
+// http status code and text
 var HTTP_CODE2TEXT = {
     100: 'Continue',
     101: 'Switching Protocol',
@@ -249,19 +169,6 @@ var HTTP_CODE2TEXT = {
     510: 'Not Extended',
     511: 'Network Authentication Required'
 };
-var _XMLHttpRequest = /** @class */ (function (_super) {
-    __extends(_XMLHttpRequest, _super);
-    function _XMLHttpRequest() {
-        var _this = _super.call(this) || this;
-        _this.DONE = DONE;
-        _this.LOADING = LOADING;
-        _this.HEADERS_RECEIVED = HEADERS_RECEIVED;
-        _this.OPENED = OPENED;
-        _this.UNSENT = UNSENT;
-        return _this;
-    }
-    return _XMLHttpRequest;
-}(XMLHttpRequestEventTarget));
 function lowerCaseIfy(headers) {
     var output = {};
     for (var header in headers) {
@@ -275,23 +182,24 @@ var XMLHttpRequest = /** @class */ (function (_super) {
     __extends(XMLHttpRequest, _super);
     function XMLHttpRequest() {
         var _this = _super.call(this) || this;
-        _this.method = 'GET';
-        _this.async = true;
-        _this.requestHeader = {};
+        _this.name = 'XMLHttpRequest';
+        _this.__method = null;
+        _this.__async = true;
+        _this.__requestHeader = {};
         _this.__responseHeader = {};
-        _this.aborted = false;
-        _this.requestTask = null; // 微信小程序返回的questTask，用于取消请求任务
+        _this.__aborted = false;
+        _this.__requestTask = null; // this is WeChat app's request task return, for abort the request
         _this.__readyState = UNSENT;
-        _this.onreadystatechangeHandler = function (event) { };
-        _this.withCredentials = false;
-        _this.__responseType = '';
+        _this.__onreadystatechangeHandler = function (event) { };
+        _this.__withCredentials = true; // default is true
+        _this.__responseType = null;
         _this.__response = null;
         _this.__responseStatus = 0;
         _this.__timeout = 0;
         _this.__haveTimeout = false;
         _this.__requestDone = false;
         _this.addEventListener(EVENT_READY_STATE_CHANGE, function (ev) {
-            _this.onreadystatechangeHandler(ev);
+            _this.__onreadystatechangeHandler(ev);
         });
         _this.addEventListener(EVENT_TIMEOUT, function (ev) {
             _this.ontimeoutHandler(ev);
@@ -312,8 +220,21 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         configurable: true
     });
     Object.defineProperty(XMLHttpRequest.prototype, "onreadystatechange", {
+        get: function () {
+            return this.__onreadystatechangeHandler;
+        },
         set: function (callback) {
-            this.onreadystatechangeHandler = callback;
+            this.__onreadystatechangeHandler = callback;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(XMLHttpRequest.prototype, "withCredentials", {
+        get: function () {
+            return this.__withCredentials;
+        },
+        set: function (value) {
+            this.__withCredentials = value;
         },
         enumerable: true,
         configurable: true
@@ -330,6 +251,13 @@ var XMLHttpRequest = /** @class */ (function (_super) {
             return typeof this.__response === 'object'
                 ? JSON.stringify(this.__response)
                 : this.__response;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(XMLHttpRequest.prototype, "responseURL", {
+        get: function () {
+            return this.__url;
         },
         enumerable: true,
         configurable: true
@@ -391,11 +319,11 @@ var XMLHttpRequest = /** @class */ (function (_super) {
             this.abort();
             return;
         }
-        this.method = method;
-        this.url = url;
-        this.async = async;
-        this.user = user;
-        this.password = password;
+        this.__method = method;
+        this.__url = url;
+        this.__async = async;
+        this.__user = user;
+        this.__password = password;
         this.__readyState = OPENED;
         this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
     };
@@ -409,7 +337,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
             throw new Error("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.");
         }
         // if the request have been aborted before send data
-        if (this.aborted === true) {
+        if (this.__aborted === true) {
             return;
         }
         // can not resend
@@ -419,28 +347,28 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         var timer = null;
         if (this.timeout > 0) {
             timer = setTimeout(function () {
-                if (_this.aborted === true) {
+                if (_this.__aborted === true) {
                     return;
                 }
                 _this.__haveTimeout = true;
-                if (_this.requestTask) {
-                    _this.requestTask.abort();
+                if (_this.__requestTask) {
+                    _this.__requestTask.abort();
                 }
                 _this.dispatchEvent(new Event(EVENT_TIMEOUT));
             }, this.timeout);
         }
-        this.requestTask = this.requestTask = wx.request({
-            url: this.url,
-            method: this.method,
-            header: this.requestHeader,
+        this.__requestTask = this.__requestTask = wx.request({
+            url: this.__url,
+            method: this.__method,
+            header: this.__requestHeader,
             data: data,
             dataType: 'json',
             success: function (res) {
-                if (_this.__haveTimeout || _this.aborted)
+                if (_this.__haveTimeout || _this.__aborted)
                     return;
                 timer && clearTimeout(timer);
                 _this.__requestDone = true;
-                _this.requestTask = null;
+                _this.__requestTask = null;
                 _this.__responseStatus = res.statusCode;
                 _this.__responseHeader = lowerCaseIfy(res.header);
                 _this.__response = res.data === void 0 ? null : res.data;
@@ -449,18 +377,18 @@ var XMLHttpRequest = /** @class */ (function (_super) {
                 }
             },
             fail: function (res) {
-                if (_this.__haveTimeout || _this.aborted)
+                if (_this.__haveTimeout || _this.__aborted)
                     return;
                 timer && clearTimeout(timer);
                 _this.__requestDone = true;
-                _this.requestTask = null;
+                _this.__requestTask = null;
                 _this.__responseStatus = res.statusCode;
                 _this.__responseHeader = lowerCaseIfy(res.header);
                 _this.__response = res.data === void 0 ? null : res.data;
                 _this.dispatchEvent(new Event(EVENT_ERROR));
             },
             complete: function () {
-                if (_this.__haveTimeout || _this.aborted)
+                if (_this.__haveTimeout || _this.__aborted)
                     return;
                 _this.__readyState = HEADERS_RECEIVED;
                 _this.dispatchEvent(new Event(EVENT_READY_STATE_CHANGE));
@@ -477,13 +405,13 @@ var XMLHttpRequest = /** @class */ (function (_super) {
     XMLHttpRequest.prototype.abort = function () {
         // if the request have been aborted or have finish the quest
         // do nothing and return void
-        if (this.aborted || this.__requestDone) {
+        if (this.__aborted || this.__requestDone) {
             return;
         }
-        if (this.requestTask) {
-            this.requestTask.abort();
+        if (this.__requestTask) {
+            this.__requestTask.abort();
         }
-        this.aborted = true;
+        this.__aborted = true;
         this.dispatchEvent(new Event(EVENT_ABORT));
     };
     /**
@@ -496,7 +424,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         if (this.readyState < OPENED) {
             throw new Error("Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.");
         }
-        this.requestHeader[header] = value + '';
+        this.__requestHeader[header] = value + '';
     };
     /**
      * get response header
@@ -523,8 +451,161 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         return headers.join('\n');
     };
     return XMLHttpRequest;
-}(_XMLHttpRequest));
+}(XMLHttpRequest_1.default));
 exports.default = XMLHttpRequest;
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var XMLHttpRequestEventTarget_1 = __webpack_require__(2);
+var UNSENT = 0;
+var OPENED = 1;
+var HEADERS_RECEIVED = 2;
+var LOADING = 3;
+var DONE = 4;
+var XMLHttpRequest = /** @class */ (function (_super) {
+    __extends(XMLHttpRequest, _super);
+    function XMLHttpRequest() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.DONE = DONE;
+        _this.LOADING = LOADING;
+        _this.HEADERS_RECEIVED = HEADERS_RECEIVED;
+        _this.OPENED = OPENED;
+        _this.UNSENT = UNSENT;
+        return _this;
+    }
+    return XMLHttpRequest;
+}(XMLHttpRequestEventTarget_1.default));
+exports.default = XMLHttpRequest;
+
+
+/***/ }),
+/* 2 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+        function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var EventTarget_1 = __webpack_require__(3);
+var XMLHttpRequestEventTarget = /** @class */ (function (_super) {
+    __extends(XMLHttpRequestEventTarget, _super);
+    function XMLHttpRequestEventTarget() {
+        var _this = _super !== null && _super.apply(this, arguments) || this;
+        _this.onabortHandler = function (event) { };
+        _this.onerrorHandler = function (event) { };
+        _this.ontimeoutHandler = function (event) { };
+        return _this;
+    }
+    Object.defineProperty(XMLHttpRequestEventTarget.prototype, "onabort", {
+        get: function () {
+            return this.onabortHandler || null;
+        },
+        set: function (func) {
+            this.onabortHandler = func;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(XMLHttpRequestEventTarget.prototype, "onerror", {
+        get: function () {
+            return this.onerrorHandler || null;
+        },
+        set: function (func) {
+            this.onerrorHandler = func;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(XMLHttpRequestEventTarget.prototype, "ontimeout", {
+        get: function () {
+            return this.ontimeoutHandler || null;
+        },
+        set: function (func) {
+            this.ontimeoutHandler = func;
+        },
+        enumerable: true,
+        configurable: true
+    });
+    return XMLHttpRequestEventTarget;
+}(EventTarget_1.default));
+exports.default = XMLHttpRequestEventTarget;
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var _EventTarget = /** @class */ (function () {
+    function _EventTarget() {
+        this.__listeners = {};
+    }
+    _EventTarget.prototype.addEventListener = function (type, callback) {
+        if (!(type in this.__listeners)) {
+            this.__listeners[type] = [];
+        }
+        this.__listeners[type].push(callback);
+    };
+    _EventTarget.prototype.removeEventListener = function (type, callback) {
+        if (!(type in this.__listeners)) {
+            return;
+        }
+        var stack = this.__listeners[type];
+        for (var i = 0, l = stack.length; i < l; i++) {
+            if (stack[i] === callback) {
+                stack.splice(i, 1);
+                return this.removeEventListener(type, callback);
+            }
+        }
+    };
+    _EventTarget.prototype.dispatchEvent = function (event) {
+        if (!(event.type in this.__listeners)) {
+            return;
+        }
+        var stack = this.__listeners[event.type];
+        Object.defineProperty(event, 'target', {
+            value: this
+        });
+        Object.defineProperty(event, 'srcElement', {
+            value: this
+        });
+        Object.defineProperty(event, 'currentTarget', {
+            value: this
+        });
+        for (var i = 0, l = stack.length; i < l; i++) {
+            stack[i].call(this, event);
+        }
+    };
+    return _EventTarget;
+}());
+exports.default = _EventTarget;
 
 
 /***/ })
