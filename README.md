@@ -34,27 +34,41 @@ const XMLHttpRequest = require('wxapp-XMLHttpRequest').default;
 
 const request = new XMLHttpRequest();
 
-request.timeout = 100;
+console.dir(request);
 
-request.ontimeout = function() {
-  console.error(`timeout...`);
-};
+request.timeout = 1000;
 
-request.setRequestHeader('hello', 'world 123');
-
-request.open('GET', 'https://www.baidu.com');
-
-request.onreadystatechange = function() {
-  if (request.readyState === 4) {
-    console.log(request.response);
-  }
+request.ontimeout = function(err) {
+  console.error(`request timeout`);
 };
 
 request.onerror = function(err) {
   console.error(err);
 };
 
+request.onreadystatechange = e => {
+  console.log(e);
+  if (request.readyState === 4) {
+    console.log(request.status);
+    console.log(request.statusText);
+    console.log(request.getResponseHeader('Status'));
+    console.log(request.getAllResponseHeaders());
+    console.log(request.response);
+    this.setData({ response: request.response });
+  }
+};
+
+request.onabort = function() {
+  console.error(`request have been abort...`);
+};
+
+request.open('GET', 'https://api.github.com');
+
+request.setRequestHeader('hello', 'world 123');
+
 request.send('hello world');
+
+// request.abort();
 ```
 
 ## Related
