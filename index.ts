@@ -100,7 +100,9 @@ const FORBIDDEN_HEADERS: string[] = [
   `Transfer-Encoding`,
   `Upgrade`,
   `Via`
-];
+]
+  .map(v => v.toLowerCase())
+  .map(v => v.trim());
 
 function lowerCaseIfy(headers) {
   let output = {};
@@ -338,7 +340,7 @@ class XMLHttpRequest extends _XMLHttpRequest {
       );
     }
 
-    if (FORBIDDEN_HEADERS.map(v => v.toLowerCase()).findIndex(header) >= 0) {
+    if (FORBIDDEN_HEADERS.findIndex(v => v.trim() === header) >= 0) {
       throw new Error(`Invalid header ${header}`);
     }
 

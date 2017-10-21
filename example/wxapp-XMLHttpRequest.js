@@ -186,7 +186,9 @@ var FORBIDDEN_HEADERS = [
     "Transfer-Encoding",
     "Upgrade",
     "Via"
-];
+]
+    .map(function (v) { return v.toLowerCase(); })
+    .map(function (v) { return v.trim(); });
 function lowerCaseIfy(headers) {
     var output = {};
     for (var header in headers) {
@@ -442,7 +444,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         if (this.readyState < this.OPENED) {
             throw new Error("Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.");
         }
-        if (FORBIDDEN_HEADERS.map(function (v) { return v.toLowerCase(); }).findIndex(header) >= 0) {
+        if (FORBIDDEN_HEADERS.findIndex(function (v) { return v.trim() === header; }) >= 0) {
             throw new Error("Invalid header " + header);
         }
         this.__requestHeader[header] = value + '';
