@@ -164,6 +164,29 @@ var HTTP_CODE2TEXT = {
     510: 'Not Extended',
     511: 'Network Authentication Required'
 };
+// forbiden header
+var FORBIDDEN_HEADERS = [
+    "Accept-Charset",
+    "Accept-Encoding",
+    "Access-Control-Request-Headers",
+    "Access-Control-Request-Method",
+    "Connection",
+    "Content-Length",
+    "Cookie",
+    "Cookie2",
+    "Date",
+    "DNT",
+    "Expect",
+    "Host",
+    "Keep-Alive",
+    "Origin",
+    "Referer",
+    "TE",
+    "Trailer",
+    "Transfer-Encoding",
+    "Upgrade",
+    "Via"
+];
 function lowerCaseIfy(headers) {
     var output = {};
     for (var header in headers) {
@@ -418,6 +441,9 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         // not call .open() yet
         if (this.readyState < this.OPENED) {
             throw new Error("Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.");
+        }
+        if (FORBIDDEN_HEADERS.map(function (v) { return v.toLowerCase(); }).findIndex(header) >= 0) {
+            throw new Error("Invalid header " + header);
         }
         this.__requestHeader[header] = value + '';
     };

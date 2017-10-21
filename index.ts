@@ -78,6 +78,30 @@ const HTTP_CODE2TEXT = {
 
 type RESPONSE_TEXT = '' | 'arraybuffer' | 'blob' | 'document' | 'json' | 'text';
 
+// forbiden header
+const FORBIDDEN_HEADERS: string[] = [
+  `Accept-Charset`,
+  `Accept-Encoding`,
+  `Access-Control-Request-Headers`,
+  `Access-Control-Request-Method`,
+  `Connection`,
+  `Content-Length`,
+  `Cookie`,
+  `Cookie2`,
+  `Date`,
+  `DNT`,
+  `Expect`,
+  `Host`,
+  `Keep-Alive`,
+  `Origin`,
+  `Referer`,
+  `TE`,
+  `Trailer`,
+  `Transfer-Encoding`,
+  `Upgrade`,
+  `Via`
+];
+
 function lowerCaseIfy(headers) {
   let output = {};
   for (let header in headers) {
@@ -313,6 +337,11 @@ class XMLHttpRequest extends _XMLHttpRequest {
         `Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.`
       );
     }
+
+    if (FORBIDDEN_HEADERS.map(v => v.toLowerCase()).findIndex(header) >= 0) {
+      throw new Error(`Invalid header ${header}`);
+    }
+
     this.__requestHeader[header] = value + '';
   }
 
