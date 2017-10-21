@@ -213,7 +213,7 @@ class XMLHttpRequest extends _XMLHttpRequest {
    * @param data
    */
   send(data?: string | Object | ArrayBuffer | FormData | Document) {
-    if (this.__readyState < this.OPENED) {
+    if (this.__readyState !== this.OPENED) {
       throw new Error(
         `Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.`
       );

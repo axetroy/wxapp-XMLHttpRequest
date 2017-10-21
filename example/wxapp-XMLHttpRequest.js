@@ -328,7 +328,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      */
     XMLHttpRequest.prototype.send = function (data) {
         var _this = this;
-        if (this.__readyState < this.OPENED) {
+        if (this.__readyState !== this.OPENED) {
             throw new Error("Failed to execute 'send' on 'XMLHttpRequest': The object's state must be OPENED.");
         }
         // if the request have been aborted before send data
