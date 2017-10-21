@@ -10,6 +10,12 @@
 
 微信小程序的XMLHttpRequest实现
 
+让你在微信小程序中使用Web(看起来)标准的Ajax接口调用
+
+不建议生产环境中使用，可以使用[wxapp-http](https://github.com/axetroy/wxapp-http)或[wxapp-fetch](https://github.com/axetroy/wxapp-fetch)
+
+纯属学习...
+
 ## Installation
 ```bash
 npm install wxapp-XMLHttpRequest --save
@@ -17,10 +23,6 @@ npm install wxapp-XMLHttpRequest --save
 
 [example](https://github.com/axetroy/wxapp-XMLHttpRequest/tree/master/example)
 
-## Features
-
-- [x] 使用typescript构建，更严谨
-- [x] 基本符合W3C标准
 
 ## Usage
 
@@ -74,8 +76,7 @@ request.send('hello world');
 ## Related
 
 [wxapp-fetch](https://github.com/axetroy/wxapp-fetch) fetch API implement for WeCHat App
-
-[@axetroy/event-emitter.js](https://github.com/axetroy/event-emitter.js) A Javascript event emitter implementation without any dependencies. only 1.4Kb
+[wxapp-http](https://github.com/axetroy/wxapp-http) 微信小程序的http模块，Tiny but Powerful
 
 ## Contributing
 
