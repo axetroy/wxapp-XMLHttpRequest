@@ -121,7 +121,15 @@ var _EventTarget = /** @class */ (function () {
             return;
         }
         var stack = this.listeners[event.type];
-        event.target = this;
+        Object.defineProperty(event, 'target', {
+            value: this
+        });
+        Object.defineProperty(event, 'srcElement', {
+            value: this
+        });
+        Object.defineProperty(event, 'currentTarget', {
+            value: this
+        });
         for (var i = 0, l = stack.length; i < l; i++) {
             stack[i].call(this, event);
         }
@@ -198,12 +206,24 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         _this.aborted = false;
         _this.requestTask = null; // 微信小程序返回的questTask，用于取消请求任务
         _this.__readyState = UNSENT;
-        _this.onreadystatechangeHandler = function () { };
+        _this.onreadystatechangeHandler = function (event) { };
         _this.withCredentials = false;
         _this.__responseType = '';
         _this.__response = null;
         _this.__responseStatus = 0;
         _this.__timeout = 0;
+        _this.addEventListener('readystatechange', function (ev) {
+            _this.onreadystatechangeHandler(ev);
+        });
+        _this.addEventListener('timeout', function (ev) {
+            _this.ontimeoutHandler(ev);
+        });
+        _this.addEventListener('abort', function (ev) {
+            _this.onabortHandler(ev);
+        });
+        _this.addEventListener('error', function (ev) {
+            _this.onabortHandler(ev);
+        });
         return _this;
     }
     Object.defineProperty(XMLHttpRequest.prototype, "readyState", {
@@ -285,11 +305,18 @@ var XMLHttpRequest = /** @class */ (function (_super) {
         if (async === void 0) { async = true; }
         if (user === void 0) { user = null; }
         if (password === void 0) { password = null; }
+        // if open over 2 time, then close connection
+        if (this.readyState >= OPENED) {
+            this.abort();
+            return;
+        }
         this.method = method;
         this.url = url;
         this.async = async;
         this.user = user;
         this.password = password;
+        this.__readyState = OPENED;
+        this.dispatchEvent(new Event('readystatechange'));
     };
     /**
      * send data
@@ -297,21 +324,17 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      */
     XMLHttpRequest.prototype.send = function (data) {
         var _this = this;
-        this.__readyState = UNSENT;
-        this.onreadystatechangeHandler();
-        this.__readyState = OPENED;
-        this.onreadystatechangeHandler();
         this.__readyState = HEADERS_RECEIVED;
-        this.onreadystatechangeHandler();
+        this.dispatchEvent(new Event('readystatechange'));
         this.__readyState = LOADING;
-        this.onreadystatechangeHandler();
+        this.dispatchEvent(new Event('readystatechange'));
         var timer = null;
         var haveTimeout = false;
         if (this.timeout > 0) {
             timer = setTimeout(function () {
                 haveTimeout = true;
                 _this.requestTask.abort();
-                _this.ontimeoutHandler(new Error("Timeout " + _this.timeout + " ms"));
+                _this.dispatchEvent(new Event('timeout'));
             }, this.timeout);
         }
         this.requestTask = this.requestTask = wx.request({
@@ -328,7 +351,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
                 _this.__responseHeader = res.header;
                 _this.__response = res.data === void 0 ? null : res.data;
                 if (_this.__responseStatus >= 400) {
-                    _this.onerrorHandler(new Error(res.errMsg));
+                    _this.dispatchEvent(new Event('error'));
                 }
             },
             fail: function (res) {
@@ -338,13 +361,13 @@ var XMLHttpRequest = /** @class */ (function (_super) {
                 _this.__responseStatus = res.statusCode;
                 _this.__responseHeader = res.header;
                 _this.__response = res.data === void 0 ? null : res.data;
-                _this.onerrorHandler(new Error(res.errMsg));
+                _this.dispatchEvent(new Event('error'));
             },
             complete: function () {
                 if (haveTimeout)
                     return;
                 _this.__readyState = DONE;
-                _this.onreadystatechangeHandler();
+                _this.dispatchEvent(new Event('readystatechange'));
             }
         });
     };
@@ -354,6 +377,7 @@ var XMLHttpRequest = /** @class */ (function (_super) {
     XMLHttpRequest.prototype.abort = function () {
         typeof this.requestTask === 'function' && this.requestTask();
         this.aborted = true;
+        this.dispatchEvent(new Event('abort'));
     };
     /**
      * set request header
@@ -361,6 +385,10 @@ var XMLHttpRequest = /** @class */ (function (_super) {
      * @param value
      */
     XMLHttpRequest.prototype.setRequestHeader = function (header, value) {
+        // not call .open() yet
+        if (this.readyState < OPENED) {
+            throw new Error("Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.");
+        }
         this.requestHeader[header] = value + '';
     };
     /**

@@ -29,7 +29,15 @@ class _EventTarget {
       return;
     }
     const stack = this.listeners[event.type];
-    event.target = this;
+    Object.defineProperty(event, 'target', {
+      value: this
+    });
+    Object.defineProperty(event, 'srcElement', {
+      value: this
+    });
+    Object.defineProperty(event, 'currentTarget', {
+      value: this
+    });
     for (let i = 0, l = stack.length; i < l; i++) {
       stack[i].call(this, event);
     }
@@ -88,7 +96,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
   private aborted: boolean = false;
   private requestTask: RequestTask$ = null; // 微信小程序返回的questTask，用于取消请求任务
   private __readyState: number = UNSENT;
-  private onreadystatechangeHandler = () => {};
+  private onreadystatechangeHandler = (event: any) => {};
   private withCredentials: boolean = false;
   private __responseType: string = '';
   private __response: any = null;
@@ -97,6 +105,18 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
 
   constructor() {
     super();
+    this.addEventListener('readystatechange', ev => {
+      this.onreadystatechangeHandler(ev);
+    });
+    this.addEventListener('timeout', ev => {
+      this.ontimeoutHandler(ev);
+    });
+    this.addEventListener('abort', ev => {
+      this.onabortHandler(ev);
+    });
+    this.addEventListener('error', ev => {
+      this.onabortHandler(ev);
+    });
   }
 
   get readyState() {
@@ -147,11 +167,19 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
    * @param password
    */
   open(method, url, async = true, user = null, password = null) {
+    // if open over 2 time, then close connection
+    if (this.readyState >= OPENED) {
+      this.abort();
+      return;
+    }
     this.method = method;
     this.url = url;
     this.async = async;
     this.user = user;
     this.password = password;
+
+    this.__readyState = OPENED;
+    this.dispatchEvent(new Event('readystatechange'));
   }
 
   /**
@@ -159,14 +187,10 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
    * @param data
    */
   send(data?: string | Object) {
-    this.__readyState = UNSENT;
-    this.onreadystatechangeHandler();
-    this.__readyState = OPENED;
-    this.onreadystatechangeHandler();
     this.__readyState = HEADERS_RECEIVED;
-    this.onreadystatechangeHandler();
+    this.dispatchEvent(new Event('readystatechange'));
     this.__readyState = LOADING;
-    this.onreadystatechangeHandler();
+    this.dispatchEvent(new Event('readystatechange'));
 
     let timer = null;
     let haveTimeout: boolean = false;
@@ -175,7 +199,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
       timer = setTimeout(() => {
         haveTimeout = true;
         this.requestTask.abort();
-        this.ontimeoutHandler(new Error(`Timeout ${this.timeout} ms`));
+        this.dispatchEvent(new Event('timeout'));
       }, this.timeout);
     }
 
@@ -192,7 +216,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
         this.__responseHeader = res.header;
         this.__response = res.data === void 0 ? null : res.data;
         if (this.__responseStatus >= 400) {
-          this.onerrorHandler(new Error(res.errMsg));
+          this.dispatchEvent(new Event('error'));
         }
       },
       fail: res => {
@@ -201,12 +225,12 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
         this.__responseStatus = res.statusCode;
         this.__responseHeader = res.header;
         this.__response = res.data === void 0 ? null : res.data;
-        this.onerrorHandler(new Error(res.errMsg));
+        this.dispatchEvent(new Event('error'));
       },
       complete: () => {
         if (haveTimeout) return;
         this.__readyState = DONE;
-        this.onreadystatechangeHandler();
+        this.dispatchEvent(new Event('readystatechange'));
       }
     });
   }
@@ -217,6 +241,7 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
   abort() {
     typeof this.requestTask === 'function' && this.requestTask();
     this.aborted = true;
+    this.dispatchEvent(new Event('abort'));
   }
 
   /**
@@ -225,6 +250,12 @@ export default class XMLHttpRequest extends _XMLHttpRequest {
    * @param value
    */
   setRequestHeader(header, value) {
+    // not call .open() yet
+    if (this.readyState < OPENED) {
+      throw new Error(
+        `Failed to execute 'setRequestHeader' on 'XMLHttpRequest': The object's state must be OPENED.`
+      );
+    }
     this.requestHeader[header] = value + '';
   }
 
