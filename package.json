@@ -1,5 +1,5 @@
 {
-  "name": "wxapp-XMLHttpRequest",
+  "name": "wxapp-xmlhttprequest",
   "version": "0.1.0",
   "description": "Web XMLHttpRequest implement for WeChat APP",
   "main": "./dist/wxapp-XMLHttpRequest.js",

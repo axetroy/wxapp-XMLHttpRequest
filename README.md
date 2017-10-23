@@ -29,10 +29,10 @@ npm install wxapp-XMLHttpRequest --save
 ```javascript
 
 // es6
-import XMLHttpRequest from 'wxapp-XMLHttpRequest';
+import XMLHttpRequest from 'wxapp-xmlhttprequest';
 
 // commonJS
-const XMLHttpRequest = require('wxapp-XMLHttpRequest').default;
+const XMLHttpRequest = require('wxapp-xmlhttprequest').default;
 
 const request = new XMLHttpRequest();
 
